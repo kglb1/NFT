@@ -9,15 +9,19 @@ import '@openzeppelin/contracts/interfaces/IERC1155.sol';
 import '@openzeppelin/contracts/token/ERC721/presets/ERC721PresetMinterPauserAutoId.sol';
 import '@openzeppelin/contracts/utils/Counters.sol';
 
-contract Collectible is ERC721PresetMinterPauserAutoId, IERC2981, Ownable {
+contract LilFTMCube is ERC721PresetMinterPauserAutoId, IERC2981, Ownable {
     using Counters for Counters.Counter;
-
-    uint8 public immutable MAX_SUPPLY; 
-    uint8 public immutable MAX_MINT; 
-    uint256 public immutable PRICE; // = x * 10**18;
+    
+    uint8 public immutable MAX_SUPPLY; // = 129;
+    uint8 public immutable MAX_MINT; // = 4;
+    uint256 public immutable CUBE_PRICE; // = 100 * 10**18;
 
     // royalty with base 10000, so 500 = 5%
     uint16 private royalty = 500;
+    
+    
+    // mapping of token owners
+    mapping (address => uint[]) public ownedTokens;
 
     // track token ids as they are minted
     Counters.Counter private tokenIds;
@@ -29,35 +33,49 @@ contract Collectible is ERC721PresetMinterPauserAutoId, IERC2981, Ownable {
         string memory _baseURI,
         uint8 _maxSupply,
         uint8 _maxPerMint,
-        uint256 _price
+        uint256 _cubePrice
     ) ERC721PresetMinterPauserAutoId(_name, _symbol, _baseURI) {
         MAX_SUPPLY = _maxSupply;
         MAX_MINT = _maxPerMint;
-        PRICE = _price;
+        CUBE_PRICE = _cubePrice;
+    }
+    
+    
+    
+    function _addOwnedToken(uint tokenId) private{
+        ownedTokens[msg.sender].push(tokenId);
+    }
+    
+
+    function getOwnedTokensByAddress() public view returns (uint[] memory) {
+        return ownedTokens[msg.sender];
     }
 
-    function mintCollectible(uint256 _quantity) public payable {
-        // require(MINT_START <= block.timestamp, 'Minting has not started yet.');
-        // require(MINT_PER_TX >= _qtyToMint, 'Too many mints for one transaction.');
-        require(PRICE * _quantity == msg.value, 'The value sent does not match the minting price.');
-        require(MAX_SUPPLY >= tokenIds.current() + _quantity, 'There are not this many collectibles remaining.');
+    function mintCube(uint256 _quantity) public payable returns (uint[] memory) {
+        require(CUBE_PRICE * _quantity == msg.value, 'The value sent does not match the minting price.');
+        require(MAX_SUPPLY >= tokenIds.current() + _quantity, 'There are not this many cubes remaining.');
 
         for (uint8 i = 0; i < _quantity; i++) {
             tokenIds.increment();
 
             _safeMint(msg.sender, tokenIds.current());
+            _addOwnedToken(tokenIds.current());
         }
+        return getOwnedTokensByAddress();
     }
+    
+    
+    
 
-    /// @notice Minting is only allowed through the mintCollectible function
+    /// @notice Minting is only allowed through the mintCube function
     /// @dev only allow minting through safe mint
     function mint(address) public pure override {
-        require(false, 'You must mintCollectible().');
+        require(false, 'You must mintCube().');
     }
 
     /// @dev override to check the max supply when minting
     function _mint(address to, uint256 _id) internal override {
-        require(_id <= MAX_SUPPLY, 'All the Collectibles are minted.');
+        require(_id <= MAX_SUPPLY, 'All the Cubes are minted.');
         super._mint(to, _id);
     }
 
@@ -135,13 +153,5 @@ contract Collectible is ERC721PresetMinterPauserAutoId, IERC2981, Ownable {
         // transfer the token from address of this contract
         uint256 _amount = tokenContract.balanceOf(address(this));
         tokenContract.transfer(this.owner(), _amount);
-    }
-
-    /// @dev withdraw ERC721 tokens to the contract owner
-    function withdrawNFT(address _tokenContract, uint256[] memory _id) external {
-        IERC721 tokenContract = IERC721(_tokenContract);
-        for (uint256 i = 0; i < _id.length; i++) {
-            tokenContract.safeTransferFrom(address(this), this.owner(), _id[i]);
-        }
     }
 }
