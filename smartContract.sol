@@ -40,16 +40,6 @@ contract LilFTMCube is ERC721PresetMinterPauserAutoId, IERC2981, Ownable {
         CUBE_PRICE = _cubePrice;
     }
     
-    
-    
-    function _addOwnedToken(uint tokenId) private{
-        ownedTokens[msg.sender].push(tokenId);
-    }
-    
-
-    function getOwnedTokensByAddress() public view returns (uint[] memory) {
-        return ownedTokens[msg.sender];
-    }
 
     function mintCube(uint256 _quantity) public payable returns (uint[] memory) {
         require(CUBE_PRICE * _quantity == msg.value, 'The value sent does not match the minting price.');
@@ -59,9 +49,7 @@ contract LilFTMCube is ERC721PresetMinterPauserAutoId, IERC2981, Ownable {
             tokenIds.increment();
 
             _safeMint(msg.sender, tokenIds.current());
-            _addOwnedToken(tokenIds.current());
         }
-        return getOwnedTokensByAddress();
     }
     
     
