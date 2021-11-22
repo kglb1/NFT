@@ -18,10 +18,6 @@ contract LilFTMCube is ERC721PresetMinterPauserAutoId, IERC2981, Ownable {
 
     // royalty with base 10000, so 500 = 5%
     uint16 private royalty = 500;
-    
-    
-    // mapping of token owners
-    mapping (address => uint[]) public ownedTokens;
 
     // track token ids as they are minted
     Counters.Counter private tokenIds;
